@@ -1,22 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
-Robô de fichas da JUCESC — versão para o COMPUTADOR (v19)
-==========================================================
-Baixa a "Ficha Cadastral Simplificada" de cada CNPJ do arquivo cnpjs.txt,
-no site público da JUCESC (cop.jucesc.sc.gov.br). Não usa login gov.br.
+"""Motor Playwright da JUCESC, reutilizado pelo serviço FastAPI.
 
-Baseado no notebook consulta_cnpjs_v17 (Colab), com estas diferenças:
-  - roda no próprio computador: nada passa pelo Google Colab nem pelo Drive;
-  - os dados do solicitante (CPF, nome, e-mail) NÃO ficam no código:
-    são pedidos na primeira vez e guardados só neste computador, na pasta
-    do seu usuário do Windows (%APPDATA%\\RoboJUCESC\\solicitante.json).
-    Assim, a pasta do robô pode ser compartilhada sem levar seus dados;
-  - só salva fichas abertas no domínio jucesc.sc.gov.br;
-  - limite de CNPJs por execução e pausa entre consultas;
-  - mostra a impressão digital (SHA-256) do arquivo, para conferir a cópia oficial.
-
-Uso:  dois cliques em rodar.bat   (ou: python consulta_fichas_jucesc.py)
-Trocar o solicitante:  trocar_solicitante.bat  (ou: python consulta_fichas_jucesc.py --trocar-solicitante)
+Implementa a consulta da Ficha Cadastral Simplificada no site público da
+JUCESC. A camada de integração HTTP está em ``src.rpa_jucesc``.
 """
 
 import asyncio

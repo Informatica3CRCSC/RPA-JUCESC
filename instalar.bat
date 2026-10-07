@@ -2,7 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 echo ============================================================
-echo  INSTALACAO DO ROBO DE FICHAS DA JUCESC (uma vez por computador)
+echo  INSTALACAO DO SERVICO RPA JUCESC (uma vez por computador)
 echo ============================================================
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -20,5 +20,4 @@ echo Instalando o navegador de reserva (usado so se o Google Chrome nao estiver 
 python -m playwright install chromium
 echo.
 echo Instalacao concluida. Para iniciar a API, use iniciar_api.bat.
-echo O CLI legado continua disponivel em rodar.bat.
 pause

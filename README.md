@@ -1,10 +1,53 @@
 # Serviço RPA JUCESC
 
-API HTTP simples para consultar CNPJs na JUCESC com FastAPI e Playwright, acompanhada de uma interface Web servida pela própria API. A automação continua sendo o fluxo já existente em `consulta_fichas_jucesc.py`; a API valida a entrada, chama esse mesmo fluxo e disponibiliza os arquivos gerados. Não há fila, banco de dados, Redis ou workers nesta versão.
+Serviço HTTP com uma interface Web para consultar CNPJs no site da Junta Comercial do Estado de Santa Catarina (JUCESC) e disponibilizar os documentos encontrados. A API também pode ser consumida por outros clientes HTTP, como o n8n.
 
-## Instalação
+## 1. O que é
 
-Requer Python 3.10+ e acesso à Internet a partir do servidor.
+A aplicação recebe dados do solicitante e uma lista de CNPJs, executa a automação existente com Playwright e retorna o resultado de cada empresa. Os arquivos resultantes são armazenados localmente, organizados por identificador da consulta (`consulta_id`), e ficam disponíveis para download.
+
+## 2. Nova arquitetura
+
+```text
+Usuário / Navegador / n8n
+              │
+              │ HTTP
+              ▼
+       FastAPI + Interface Web
+              │
+              ▼
+        rpa_jucesc.py
+              │
+              ▼
+  consulta_fichas_jucesc.py
+              │
+       Playwright / Chrome
+              │
+              ▼
+           JUCESC
+              │
+              ▼
+          CSV + PDFs
+```
+
+## 3. Como funciona
+
+1. O usuário utiliza a interface Web ou um cliente HTTP envia uma solicitação à API.
+2. A FastAPI valida os dados do solicitante e os CNPJs.
+3. `rpa_jucesc.py` normaliza os CNPJs e encaminha a consulta ao motor Playwright.
+4. `consulta_fichas_jucesc.py` consulta a JUCESC e gera os resultados.
+5. A API retorna um resumo com um `consulta_id`, os resultados individuais e URLs para listar ou baixar os arquivos.
+
+## 4. Requisitos
+
+- Windows, com Python 3.10 ou superior.
+- Acesso à Internet para o servidor e para a consulta ao site da JUCESC.
+- Google Chrome instalado ou Chromium instalado pelo Playwright.
+- Dependências Python de `requirements.txt`.
+
+## 5. Instalação
+
+Na raiz do projeto, crie e ative um ambiente virtual e instale as dependências:
 
 ```powershell
 python -m venv .venv
@@ -14,52 +57,48 @@ python -m pip install -r requirements.txt
 python -m playwright install chromium
 ```
 
-Também é possível executar `instalar.bat` no Windows para instalar as dependências do serviço e o navegador do Playwright.
+No Windows, `instalar.bat` instala as dependências e o Chromium usando o Python disponível no `PATH`.
 
-## Executar a API
+## 6. Como executar
+
+Inicie o serviço a partir da raiz do repositório:
 
 ```powershell
 python -m uvicorn src.api:app --host 127.0.0.1 --port 8000
 ```
 
-`iniciar_api.bat` executa o mesmo comando no Windows. A documentação interativa fica em `http://127.0.0.1:8000/docs`.
+No Windows, também é possível executar `iniciar_api.bat`. Com o serviço ativo:
 
-### Interface Web
+- Interface Web: <http://127.0.0.1:8000/>
+- Documentação interativa da API: <http://127.0.0.1:8000/docs>
+- Verificação de disponibilidade: <http://127.0.0.1:8000/health>
 
-Com a API em execução, abra `http://127.0.0.1:8000/` no navegador. Preencha nome, CPF e e-mail do solicitante; em seguida, escolha se deseja digitar/colar um CNPJ por linha ou enviar um arquivo `.txt`/`.csv`. A interface mostra o resultado de cada CNPJ e permite baixar os PDFs encontrados e o relatório CSV do lote.
+## 7. Interface Web
 
-O upload aceita arquivos de até 1 MB. A interface usa os limites e validações da API; o máximo padrão é de 20 CNPJs por consulta. As consultas são síncronas e podem levar alguns minutos, portanto mantenha a página aberta enquanto o processamento estiver em andamento.
+Abra <http://127.0.0.1:8000/> no navegador. Informe nome, CPF e e-mail do solicitante e escolha como fornecer os CNPJs:
 
-Por padrão, o servidor escuta apenas no próprio computador. Se outros computadores precisarem acessá-lo, configure a rede privada/firewall e inicie com `--host 0.0.0.0`. **Esta versão não tem autenticação**: não exponha a API diretamente à Internet. CPF, nome e e-mail são enviados à JUCESC durante cada execução, não são guardados no disco pela API. CSVs e PDFs são armazenados localmente e contêm dados que devem ter acesso restrito.
+- **Digitar ou colar:** um CNPJ por linha.
+- **Enviar arquivo:** arquivo `.txt` com um CNPJ por linha ou `.csv` com os CNPJs na primeira coluna; a coluna pode ter o cabeçalho `CNPJ`.
 
-## Configuração
+A interface mostra o resultado individual de cada CNPJ e oferece os PDFs encontrados e o relatório CSV para download. Durante a consulta, mantenha a página aberta: o processamento é síncrono e a solicitação HTTP permanece em andamento até terminar.
 
-Copie `.env.example` como referência. O aplicativo não carrega arquivos `.env` automaticamente; configure as variáveis no ambiente do processo antes de iniciar:
+## 8. API HTTP
 
-- `RPA_OUTPUT_DIR`: diretório de saída (padrão `outputs`, relativo ao diretório de execução).
-- `RPA_MAX_CNPJS`: máximo de CNPJs por consulta (padrão `20`).
+A API é a entrada HTTP comum à interface Web, ao n8n e a outros clientes:
 
-No PowerShell, por exemplo:
+| Método | Rota | Finalidade |
+| --- | --- | --- |
+| `GET` | `/health` | Informa se o processo da API está disponível. |
+| `POST` | `/consultas` | Executa uma consulta a partir de uma lista JSON de CNPJs. |
+| `POST` | `/consultas/arquivo` | Executa uma consulta a partir de arquivo TXT ou CSV. |
+| `GET` | `/consultas/{consulta_id}/arquivos` | Lista os CSVs e PDFs disponíveis para uma consulta. |
+| `GET` | `/consultas/{consulta_id}/arquivos/{nome_arquivo}` | Baixa um arquivo permitido daquela consulta. |
 
-```powershell
-$env:RPA_OUTPUT_DIR = "C:\Dados\RPA-JUCESC"
-$env:RPA_MAX_CNPJS = "20"
-python -m uvicorn src.api:app --host 127.0.0.1 --port 8000
-```
+A API não oferece um endpoint separado para consultar novamente um `consulta_id`; o identificador organiza os arquivos da solicitação concluída.
 
-## Endpoints
+## 9. Entrada por JSON
 
-### `GET /health`
-
-Verifica se o processo está disponível:
-
-```json
-{"status":"ok"}
-```
-
-### `POST /consultas`
-
-Consulta uma lista enviada como JSON. CPF, nome completo e e-mail do solicitante são os dados exigidos pela JUCESC:
+Envie `POST /consultas` com `Content-Type: application/json`. Os campos do solicitante são obrigatórios; `cnpjs` deve conter pelo menos um CNPJ. O exemplo abaixo usa valores de teste aceitos pela validação local:
 
 ```json
 {
@@ -70,9 +109,7 @@ Consulta uma lista enviada como JSON. CPF, nome completo e e-mail do solicitante
 }
 ```
 
-A chamada permanece aberta até o lote acabar. A API executa um lote por vez neste processo, limita cada lote a 20 CNPJs por padrão e normaliza/ignora CNPJs duplicados. O site pode demorar; configure timeout suficiente no cliente HTTP e em qualquer proxy reverso.
-
-Exemplo de resposta:
+Quando a solicitação é processada, a resposta `200 OK` tem este formato:
 
 ```json
 {
@@ -93,53 +130,200 @@ Exemplo de resposta:
 }
 ```
 
-O campo `status` é `success` ou `error`; falhas individuais incluem a descrição em `erro`. O CSV contém todos os CNPJs processados e seus status.
+`consulta_id` identifica a pasta dos arquivos daquela consulta. Cada item de `resultados` tem status `success` ou `error`; falhas individuais podem incluir a descrição em `erro`. `sucesso` e `erros` são as quantidades de resultados em cada estado. O conteúdo efetivo depende da resposta da JUCESC.
 
-### `POST /consultas/arquivo`
+Exemplo com `curl.exe` no PowerShell:
 
-Envia `multipart/form-data` com:
+```powershell
+$body = @{
+  cnpjs = @("12.345.678/0001-95")
+  cpf_solicitante = "529.982.247-25"
+  nome_solicitante = "Nome Sobrenome"
+  email_solicitante = "nome@example.com"
+} | ConvertTo-Json
 
-- `arquivo`: `.txt` com um CNPJ por linha, ou `.csv` com os CNPJs na primeira coluna (opcionalmente com uma coluna chamada `CNPJ`). CSV separado por vírgula, ponto e vírgula ou tabulação é aceito.
-- `cpf_solicitante`, `nome_solicitante`, `email_solicitante`: mesmos campos do JSON.
+Invoke-RestMethod -Method Post `
+  -Uri "http://127.0.0.1:8000/consultas" `
+  -ContentType "application/json" `
+  -Body $body
+```
 
-O upload tem limite de 1 MB. Ambas as formas de entrada usam as mesmas validações e o mesmo fluxo Playwright.
+## 10. Entrada por arquivo
 
-### Arquivos resultantes
+Envie `POST /consultas/arquivo` como `multipart/form-data` com os campos `arquivo`, `cpf_solicitante`, `nome_solicitante` e `email_solicitante`. São aceitos `.txt` e `.csv` até 1 MB. O CSV pode usar vírgula, ponto e vírgula ou tabulação; se houver um cabeçalho `CNPJ`, essa coluna será usada; sem cabeçalho reconhecido, será usada a primeira coluna.
 
-- `GET /consultas/{consulta_id}/arquivos`: lista CSV e PDFs gerados.
-- `GET /consultas/{consulta_id}/arquivos/{nome_arquivo}`: baixa um arquivo daquele identificador.
+Exemplo de arquivo `cnpjs.txt`:
 
-Os arquivos ficam em `RPA_OUTPUT_DIR/{consulta_id}/`. A limpeza/retention desses diretórios é responsabilidade de quem administra o servidor.
+```text
+12.345.678/0001-95
+```
 
-### Erros HTTP comuns
+Exemplo no PowerShell:
 
-- `422`: JSON, CNPJ, solicitante ou arquivo inválido.
-- `404`: identificador de consulta ou arquivo não encontrado.
-- `413`: upload maior que 1 MB.
-- `500`: falha inesperada na execução do motor, registrada no log do servidor.
+```powershell
+curl.exe -X POST "http://127.0.0.1:8000/consultas/arquivo" `
+  -F "arquivo=@cnpjs.txt" `
+  -F "cpf_solicitante=529.982.247-25" `
+  -F "nome_solicitante=Nome Sobrenome" `
+  -F "email_solicitante=nome@example.com"
+```
 
-## Testes
+A resposta usa o mesmo contrato da entrada JSON: `consulta_id`, contadores, resultados e URLs dos arquivos.
+
+## 11. Arquivos gerados
+
+Os arquivos de cada consulta ficam em `RPA_OUTPUT_DIR/{consulta_id}/`. A API permite listar somente os CSVs e PDFs reconhecidos como resultados:
+
+```http
+GET /consultas/e084fb3d-95ad-470b-bca3-59c41da2f214/arquivos
+```
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "nome": "resultados_jucesc.csv",
+    "url": "/consultas/e084fb3d-95ad-470b-bca3-59c41da2f214/arquivos/resultados_jucesc.csv"
+  },
+  {
+    "nome": "jucesc_12.345.678-0001-95.pdf",
+    "url": "/consultas/e084fb3d-95ad-470b-bca3-59c41da2f214/arquivos/jucesc_12.345.678-0001-95.pdf"
+  }
+]
+```
+
+Use a URL de cada arquivo para baixá-lo. Os nomes são verificados pela API e somente arquivos `.csv` e `.pdf` da pasta daquela consulta podem ser servidos. A retenção e a limpeza das pastas locais são responsabilidade do administrador do serviço.
+
+## 12. Integração com n8n
+
+No n8n, use o nó **HTTP Request** para chamar os endpoints da FastAPI; não é necessária nem prevista uma integração direta do n8n com o processo Python:
+
+```text
+n8n ── HTTP Request ──► FastAPI ──► RPA
+```
+
+Para uma lista estruturada, configure `POST /consultas` com corpo JSON e os campos documentados acima. Para um arquivo, use `POST /consultas/arquivo` com corpo multipart/form-data. A resposta fornece o `consulta_id` e os URLs dos arquivos. Como a chamada espera a automação terminar, configure no n8n e em eventuais proxies um timeout adequado à duração observada das consultas.
+
+## 13. Configuração
+
+As variáveis são lidas do ambiente do processo. O serviço **não carrega automaticamente** um arquivo `.env`; `.env.example` é apenas uma referência.
+
+| Variável | Padrão | Efeito |
+| --- | --- | --- |
+| `RPA_OUTPUT_DIR` | Diretório `outputs` na raiz do projeto | Diretório local em que a API cria uma pasta por consulta. |
+| `RPA_MAX_CNPJS` | `20` | Número máximo de CNPJs distintos por consulta, aplicado pelo motor de automação. |
+
+Configure-as antes de iniciar o processo. Exemplo no PowerShell:
+
+```powershell
+$env:RPA_OUTPUT_DIR = "C:\Dados\RPA-JUCESC"
+$env:RPA_MAX_CNPJS = "20"
+python -m uvicorn src.api:app --host 127.0.0.1 --port 8000
+```
+
+O limite de upload é atualmente fixo em 1 MB. As variáveis de ambiente devem ser definidas no mesmo ambiente que inicia o serviço; editá-las depois que o processo começou não altera a configuração já carregada.
+
+## 14. Acesso pela rede
+
+Por padrão, `iniciar_api.bat` inicia o servidor em `127.0.0.1`, acessível somente no próprio computador. Para disponibilizá-lo numa rede privada, pode ser necessário iniciar com `--host 0.0.0.0` e configurar firewall e regras de rede adequadas.
+
+**Esta versão não tem autenticação própria. Não exponha a API diretamente à Internet.** Restrinja o acesso ao serviço pela rede e proteja os CSVs e PDFs, que podem conter dados sensíveis.
+
+## 15. Processamento atual
+
+A versão atual mantém uma arquitetura deliberadamente simples:
+
+- cada consulta é síncrona e mantém a requisição HTTP aberta durante o processamento;
+- uma instância de API executa um lote por vez;
+- os resultados são armazenados no disco local;
+- não há banco de dados, fila, Redis ou workers;
+- não há autenticação própria.
+
+Essas são características do modelo atual de execução. O navegador deve permanecer aberto até a resposta chegar; clientes HTTP devem prever um timeout suficiente.
+
+## 16. Limitações atuais e respostas HTTP
+
+Uma consulta pode levar vários minutos, pois depende da disponibilidade e do tempo de resposta do site da JUCESC. A lista de CNPJs e os dados do solicitante são validados pela API; CNPJs duplicados são normalizados e ignorados.
+
+Erros HTTP comuns:
+
+| Código | Situação |
+| --- | --- |
+| `422 Unprocessable Entity` | JSON, CNPJ, dados do solicitante ou arquivo inválido/não suportado. |
+| `404 Not Found` | Consulta ou arquivo não encontrado. |
+| `413 Request Entity Too Large` | Upload acima de 1 MB. |
+| `500 Internal Server Error` | Falha inesperada durante a execução do motor; o detalhe técnico é registrado no log do servidor. |
+
+Uma falha individual de consulta pode ser retornada como item com status `error` em uma resposta `200`; isso não significa necessariamente que o lote inteiro falhou.
+
+## 17. Testes
+
+Execute na raiz do repositório:
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-Os testes usam uma automação simulada e não acessam a JUCESC nem iniciam navegador.
+Os testes usam uma automação simulada para verificar validações, API, arquivos estáticos e downloads. Eles não consultam o site da JUCESC nem iniciam um navegador.
 
-## Estrutura
+## 18. Estrutura do projeto
 
 ```text
-consulta_fichas_jucesc.py  # motor Playwright existente e CLI legado
-src/
-  api.py                   # endpoints síncronos FastAPI
-  config.py                # diretório e limite configuráveis
-  models.py                # contratos HTTP
-  rpa_jucesc.py            # validação e fachada para o motor existente
-  static/                  # interface Web HTML, CSS e JavaScript
-  storage.py               # diretórios e acesso seguro aos artefatos
-tests/
+RPA-JUCESC/
+├── src/
+│   ├── __init__.py
+│   ├── api.py
+│   ├── config.py
+│   ├── models.py
+│   ├── rpa_jucesc.py
+│   ├── storage.py
+│   └── static/
+│       ├── app.js
+│       ├── index.html
+│       └── styles.css
+├── tests/
+│   ├── test_api.py
+│   └── test_rpa.py
+├── consulta_fichas_jucesc.py
+├── iniciar_api.bat
+├── instalar.bat
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-O CLI permanece disponível por `rodar.bat`; ele e a API chamam o mesmo fluxo de automação.
+Responsabilidade de cada parte:
 
-O site para consulta é esse: https://cop.jucesc.sc.gov.br/externo/servicos/?bnire
+- **FastAPI (`src/api.py`):** porta de entrada HTTP, serve a interface Web e implementa os endpoints.
+- **Interface Web (`src/static/`):** formulário do navegador, apresentação dos resultados e acesso aos downloads.
+- **`src/rpa_jucesc.py`:** valida e normaliza CNPJs e encaminha a consulta ao motor.
+- **`consulta_fichas_jucesc.py`:** motor existente de automação Playwright que navega no site da JUCESC.
+- **`src/storage.py`:** cria e consulta as pastas e os arquivos de resultado.
+- **`src/models.py`:** define os modelos de entrada e as respostas usadas pela API.
+- **`src/config.py`:** centraliza o diretório de resultados e o limite fixo de upload.
+- **`tests/`:** testes automatizados da API e da camada RPA.
+- **`iniciar_api.bat` e `instalar.bat`:** inicialização do serviço e instalação de dependências no Windows.
+
+## 19. Site da JUCESC
+
+A automação consulta o serviço público de fichas da JUCESC em <https://cop.jucesc.sc.gov.br/externo/servicos/?bnire>. A disponibilidade e o funcionamento do serviço externo podem afetar o tempo e o resultado das consultas.
+
+## 20. Resumo da arquitetura
+
+```text
+Navegador ou cliente HTTP (incluindo n8n)
+                    │
+                    ▼
+                  FastAPI
+                    │
+                    ▼
+         RPA Python + Playwright
+                    │
+                    ▼
+                  JUCESC
+                    │
+                    ▼
+              CSV e PDFs locais
+```

@@ -75,6 +75,11 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.get("/health")
         self.assertEqual(response.json(), {"status": "ok"})
 
+    async def test_openapi_identifica_nova_linha_de_versao(self):
+        response = await self.client.get("/openapi.json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["info"]["version"], "2.0.0-alpha.1")
+
     async def test_interface_web_e_arquivos_estaticos(self):
         response = await self.client.get("/")
         self.assertEqual(response.status_code, 200)

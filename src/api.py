@@ -74,7 +74,7 @@ def criar_app(
     pasta_resultados: Path = PASTA_RESULTADOS,
     automation: Automation = consultar,
 ) -> FastAPI:
-    app = FastAPI(title="API RPA JUCESC", version="1.0.0")
+    app = FastAPI(title="API RPA JUCESC", version="2.0.0-alpha.1")
     app.state.consulta_lock = asyncio.Lock()
     app.state.pasta_resultados = pasta_resultados.resolve()
     app.state.automation = automation
