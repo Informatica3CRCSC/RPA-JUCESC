@@ -2,7 +2,7 @@
 
 Serviço HTTP com uma interface Web para consultar CNPJs no site da Junta Comercial do Estado de Santa Catarina (JUCESC) e disponibilizar os documentos encontrados. A API também pode ser consumida por outros clientes HTTP, como o n8n.
 
-### ** ACESSO PELO LINK:** http://192.168.2.210:8000 
+### ACESSO PELO LINK: http://192.168.2.210:8000 
 
 ## 1. O que é
 
