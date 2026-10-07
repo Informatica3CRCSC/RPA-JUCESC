@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Serviço RPA JUCESC: instalação e uso</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d2433;--mut:#5b6475;--card:#ffffff;--line:#e3e0d8;--acc:#1f5fbf;--code:#f0eee8;--warn:#fff4d6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#14171d;--fg:#e8eaf0;--mut:#a3abbb;--card:#1c2029;--line:#323847;--acc:#7fb0ff;--code:#262b36;--warn:#3a321c}}
+:root[data-theme="dark"]{--bg:#14171d;--fg:#e8eaf0;--mut:#a3abbb;--card:#1c2029;--line:#323847;--acc:#7fb0ff;--code:#262b36;--warn:#3a321c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;max-width:780px;margin:0 auto;padding:20px 18px 48px}
+h1{font-size:1.6rem;line-height:1.25;margin:.2em 0 .3em}
+h2{font-size:1.2rem;margin:2em 0 .6em;padding-top:.6em;border-top:1px solid var(--line)}
+p.sub{color:var(--mut);margin-top:0}
+code{background:var(--code);padding:.1em .4em;border-radius:5px;font-family:Consolas,Menlo,monospace;font-size:.9em;word-break:break-word}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-family:Consolas,Menlo,monospace;font-size:.88em;margin:.6em 0}
+ol,ul{padding-left:1.3em}li{margin:.35em 0}
+.note{background:var(--warn);border-radius:8px;padding:10px 14px;margin:1em 0}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.93em}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--card)}
+@media print{body{max-width:none}}
+.ok{color:#2e7d32;font-weight:600}.bad{color:#c0392b;font-weight:600}
+.box{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:1em 0}
+</style>
+</head>
+<body>
+<h1>Serviço RPA da JUCESC</h1>
+<p class="sub">Consulta CNPJs no site público da JUCESC com Playwright. O mesmo fluxo pode ser acionado localmente pelo CLI legado ou pela API FastAPI.</p>
+
+<h2>1. Executar como serviço HTTP</h2>
+<ol>
+<li>Instale Python 3.10+ e execute <code>instalar.bat</code> para instalar FastAPI, Uvicorn, Playwright e Chromium.</li>
+<li>Execute <code>iniciar_api.bat</code>. A API escuta localmente em <code>http://127.0.0.1:8000</code>; a documentação interativa está em <code>http://127.0.0.1:8000/docs</code>.</li>
+<li>Envie CNPJs por JSON em <code>POST /consultas</code> ou arquivo <code>.txt</code>/<code>.csv</code> por <code>POST /consultas/arquivo</code>, incluindo CPF, nome e e-mail do solicitante. A requisição aguarda o lote terminar e responde com resultados e URLs dos arquivos.</li>
+<li>Baixe o CSV e os PDFs pelas URLs retornadas. Os arquivos ficam em <code>outputs/&lt;consulta_id&gt;</code>; proteja essa pasta e limpe-a conforme a política do servidor.</li>
+</ol>
+<div class="note"><b>Segurança:</b> esta versão não tem autenticação e deve ficar somente em rede privada/confiável; não exponha diretamente à Internet. Se clientes remotos precisarem acessar, configure a rede/firewall e use <code>--host 0.0.0.0</code> conscientemente. O timeout HTTP deve comportar a duração do lote.</div>
+<p>Exemplo de JSON para <code>POST /consultas</code>:</p>
+<pre>{"cnpjs":["12.345.678/0001-95"],"cpf_solicitante":"529.982.247-25","nome_solicitante":"Nome Sobrenome","email_solicitante":"nome@example.com"}</pre>
+
+<h2>2. Executar pelo terminal (CLI legado)</h2>
+<p>O fluxo antigo continua disponível por <code>rodar.bat</code>. A API e o CLI usam o mesmo código de automação; o CLI lê <code>cnpjs.txt</code> e pode guardar o solicitante no perfil local.</p>
+
+<h2>3. Instalação pela primeira vez (uma vez por computador)</h2>
+<ol>
+<li><b>Instale o Python.</b> Entre em <code>python.org</code> → <b>Downloads</b> → baixe a versão para Windows e abra o instalador. Na primeira tela, <b>marque "Add python.exe to PATH"</b> e clique em <b>Install Now</b>. (Se o computador for do trabalho e pedir senha de administrador, peça à TI.)</li>
+<li><b>Copie a pasta do robô</b> <code>robo_fichas_jucesc</code> para o seu computador (por exemplo, em <code>Documentos</code>). Se recebeu um .zip: botão direito → <b>Extrair tudo</b>.</li>
+<li><b>Dê dois cliques em <code>instalar.bat</code>.</b> Ele instala o Playwright e um navegador de reserva. Espere aparecer "Instalação concluída". Se o Windows mostrar "O Windows protegeu o computador", clique em <b>Mais informações → Executar assim mesmo</b> (só para os arquivos da cópia oficial).</li>
+<li>Pronto. Não precisa repetir, a não ser que troque de computador.</li>
+</ol>
+<div class="note">Se aparecer <b>"'python' não é reconhecido"</b>, o Python foi instalado sem marcar "Add python.exe to PATH". Desinstale, instale de novo marcando a opção e rode o <code>instalar.bat</code> outra vez.</div>
+
+<h2>4. Como usar o CLI legado</h2>
+<ol>
+<li><b>Preencha o <code>cnpjs.txt</code></b> (na pasta do robô) com o Bloco de Notas: um CNPJ por linha, com ou sem pontuação, até 20. Salve.</li>
+<li><b>Dê dois cliques em <code>rodar.bat</code>.</b> A janela preta mostra a impressão digital do robô, a lista de CNPJs lida e o resultado da validação. CNPJ com dígito errado é apontado <b>antes</b> de consultar.</li>
+<li><b>Na primeira vez</b>, o robô pede os dados do <b>solicitante</b> exigidos pela JUCESC (os seus: CPF, nome completo e e-mail). O CPF não aparece enquanto você digita. Ele pergunta se pode guardar esses dados <b>neste computador</b>; responda S para não precisar digitar nas próximas vezes.</li>
+<li>Confira a lista e aperte <b>ENTER</b>. O robô consulta um CNPJ por vez, com pausa entre eles. Não precisa fazer nada.</li>
+<li>No fim, aperte ENTER para fechar a janela.</li>
+</ol>
+<p><b>Trocar o solicitante</b> (ex.: outra pessoa vai usar o computador): dois cliques em <code>trocar_solicitante.bat</code>; na próxima execução ele pede os dados de novo.</p>
+
+<h2>5. Onde ficam os resultados do CLI</h2>
+<ul>
+<li>Pasta <code>fichas_jucesc_AAAA-MM-DD_HHMM</code>, dentro da pasta do robô.</li>
+<li><code>jucesc_&lt;cnpj&gt;.pdf</code>: uma ficha por CNPJ.</li>
+<li><code>resultados_jucesc.csv</code>: abra primeiro (no Excel). Mostra o status (<code>success</code>/<code>error</code>), arquivo e erro de cada CNPJ. É gravado a cada CNPJ, então nada se perde se o robô parar no meio.</li>
+<li><code>jucesc_&lt;cnpj&gt;_erro.png</code>: print da tela quando algo falhou.</li>
+</ul>
+
+<h2>6. Mensagens comuns</h2>
+<div class="wrap"><table>
+<tr><th>Mensagem</th><th>O que fazer</th></tr>
+<tr><td>Há linhas inválidas no arquivo</td><td>Corrija o CNPJ indicado (número trocado ou faltando) e rode de novo.</td></tr>
+<tr><td>Sem resultado para o CNPJ …</td><td>O CNPJ não apareceu na tabela da JUCESC (sem registro lá ou o site não respondeu). Confira à mão.</td></tr>
+<tr><td>Não encontrei o botão/ícone da Ficha</td><td>O site da JUCESC mudou. Envie o print <code>_erro.png</code> (com dados cobertos) para ajuste.</td></tr>
+<tr><td>A ficha abriu fora do domínio da JUCESC</td><td>Proteção: o robô só salva páginas de <code>jucesc.sc.gov.br</code>. Se for legítimo, avise quem mantém o robô.</td></tr>
+<tr><td>A página da JUCESC não abriu</td><td>Abra o endereço da JUCESC no Chrome normal. Se também não abrir, o site está fora do ar ou bloqueado pela rede da instituição: fale com a TI.</td></tr>
+<tr><td>Erro geral na JUCESC (fluxo inicial)</td><td>Confira a internet e os dados do solicitante (<code>trocar_solicitante.bat</code>). Se persistir, o site pode estar fora do ar.</td></tr>
+<tr><td>O limite por execução é 20</td><td>Rode de novo com os CNPJs restantes.</td></tr>
+</table></div>
+<p>Para investigar um erro vendo o navegador, abra o <code>consulta_fichas_jucesc.py</code> no Bloco de Notas e troque <code>MOSTRAR_NAVEGADOR = False</code> por <code>True</code> (isso muda a impressão digital; volte ao original depois).</p>
+
+<h2>7. Segurança e LGPD</h2>
+<div class="wrap"><table>
+<tr><th>Ponto</th><th>Como o robô trata</th><th>O que você faz</th></tr>
+<tr><td>Seus dados (CPF, nome, e-mail)</td><td><b>Não ficam no código.</b> Ficam só no seu usuário do Windows, em <code>%APPDATA%\RoboJUCESC\solicitante.json</code>, fora da pasta do robô</td><td>Não copie esse arquivo para outras pessoas; use <code>trocar_solicitante.bat</code> se outra pessoa usar o computador</td></tr>
+<tr><td>Onde os dados circulam</td><td>Só entre o seu computador e o site da JUCESC (nada vai para o Google Colab ou Drive)</td><td>—</td></tr>
+<tr><td>Sites acessados</td><td>Só salva fichas do domínio <code>jucesc.sc.gov.br</code></td><td>—</td></tr>
+<tr><td>Volume</td><td>Até 20 CNPJs por execução, com pausa entre consultas</td><td>Lotes pequenos</td></tr>
+<tr><td>Cópia adulterada</td><td>Mostra a impressão digital ao iniciar</td><td>Conferir com a oficial (abaixo)</td></tr>
+<tr><td>Fichas e prints</td><td>Podem conter dados pessoais de sócios</td><td>Pasta restrita; sem WhatsApp ou e-mail pessoal; apagar quando não precisar</td></tr>
+</table></div>
+<div class="note"><b>Notebook antigo do Colab (v17):</b> ele tem os seus dados pessoais escritos dentro do código. Não compartilhe esse notebook nem o link dele; depois de passar a usar este robô, apague-o (inclusive do Drive e da Lixeira) e as pastas <code>pesquisa/execucao_...</code> que não forem mais necessárias.</div>
+
+<h2>8. Impressão digital</h2>
+<p>A impressão digital publicada para a versão original v19 não corresponde mais ao código após a adaptação para API. Não use o hash antigo para validar esta versão. Publique um novo hash junto à cópia oficial quando ela for distribuída.</p>
+
+<h2>9. Compartilhar com colegas</h2>
+<p>A pasta do robô <b>pode ser compartilhada</b>, porque não contém dados pessoais (o <code>cnpjs.txt</code> vai vazio e os dados do solicitante ficam no computador de cada um). Siga o mesmo procedimento do robô do REGIN: autorização da chefia/TI, cópia oficial em pasta institucional só para leitura, cada colega instala no próprio computador, informa os <b>próprios</b> dados de solicitante e confere a impressão digital.</p>
+
+<h2>10. Manutenção</h2>
+<ul>
+<li>Ajustes de comportamento ficam no topo do arquivo: <code>MAX_CNPJS_POR_EXECUCAO</code>, <code>SALVAR_PRINT_RESULTADO</code>, <code>MOSTRAR_NAVEGADOR</code>. Não altere <code>DOMINIO_PERMITIDO</code> sem necessidade.</li>
+<li>Se o site da JUCESC mudar, o ponto a ajustar é a lista de candidatos em <code>_localizar_icone_ficha()</code> e <code>_voltar_para_busca()</code>.</li>
+<li>Se quebrar depois de o Chrome atualizar: no Prompt da pasta, <code>python -m pip install --upgrade playwright</code>.</li>
+<li>Toda alteração muda a impressão digital: publique a nova neste guia.</li>
+</ul>
+
+</body>
+</html>
