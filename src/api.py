@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.config import PASTA_RESULTADOS, TAMANHO_MAXIMO_UPLOAD
 from src.models import (
@@ -77,6 +78,10 @@ def criar_app(
     app.state.consulta_lock = asyncio.Lock()
     app.state.pasta_resultados = pasta_resultados.resolve()
     app.state.automation = automation
+
+    @app.get("/", include_in_schema=False)
+    async def interface_web() -> FileResponse:
+        return FileResponse(Path(__file__).parent / "static" / "index.html")
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -208,6 +213,12 @@ def criar_app(
         if arquivo is None:
             raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
         return FileResponse(arquivo, filename=arquivo.name)
+
+    app.mount(
+        "/static",
+        StaticFiles(directory=Path(__file__).parent / "static"),
+        name="static",
+    )
 
     return app
 

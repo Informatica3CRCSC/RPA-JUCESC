@@ -1,6 +1,6 @@
 # Serviço RPA JUCESC
 
-API HTTP simples para consultar CNPJs na JUCESC com FastAPI e Playwright. A automação continua sendo o fluxo já existente em `consulta_fichas_jucesc.py`; a API apenas valida a entrada, chama esse mesmo fluxo e disponibiliza os arquivos gerados. Não há fila, banco de dados, Redis, workers ou interface Web nesta versão.
+API HTTP simples para consultar CNPJs na JUCESC com FastAPI e Playwright, acompanhada de uma interface Web servida pela própria API. A automação continua sendo o fluxo já existente em `consulta_fichas_jucesc.py`; a API valida a entrada, chama esse mesmo fluxo e disponibiliza os arquivos gerados. Não há fila, banco de dados, Redis ou workers nesta versão.
 
 ## Instalação
 
@@ -23,6 +23,12 @@ python -m uvicorn src.api:app --host 127.0.0.1 --port 8000
 ```
 
 `iniciar_api.bat` executa o mesmo comando no Windows. A documentação interativa fica em `http://127.0.0.1:8000/docs`.
+
+### Interface Web
+
+Com a API em execução, abra `http://127.0.0.1:8000/` no navegador. Preencha nome, CPF e e-mail do solicitante; em seguida, escolha se deseja digitar/colar um CNPJ por linha ou enviar um arquivo `.txt`/`.csv`. A interface mostra o resultado de cada CNPJ e permite baixar os PDFs encontrados e o relatório CSV do lote.
+
+O upload aceita arquivos de até 1 MB. A interface usa os limites e validações da API; o máximo padrão é de 20 CNPJs por consulta. As consultas são síncronas e podem levar alguns minutos, portanto mantenha a página aberta enquanto o processamento estiver em andamento.
 
 Por padrão, o servidor escuta apenas no próprio computador. Se outros computadores precisarem acessá-lo, configure a rede privada/firewall e inicie com `--host 0.0.0.0`. **Esta versão não tem autenticação**: não exponha a API diretamente à Internet. CPF, nome e e-mail são enviados à JUCESC durante cada execução, não são guardados no disco pela API. CSVs e PDFs são armazenados localmente e contêm dados que devem ter acesso restrito.
 
@@ -129,6 +135,7 @@ src/
   config.py                # diretório e limite configuráveis
   models.py                # contratos HTTP
   rpa_jucesc.py            # validação e fachada para o motor existente
+  static/                  # interface Web HTML, CSS e JavaScript
   storage.py               # diretórios e acesso seguro aos artefatos
 tests/
 ```

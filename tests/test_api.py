@@ -75,6 +75,20 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.client.get("/health")
         self.assertEqual(response.json(), {"status": "ok"})
 
+    async def test_interface_web_e_arquivos_estaticos(self):
+        response = await self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response.headers["content-type"])
+        self.assertIn('id="form-consulta"', response.text)
+
+        js_response = await self.client.get("/static/app.js")
+        self.assertEqual(js_response.status_code, 200)
+        self.assertIn('"/consultas"', js_response.text)
+        self.assertIn('"/consultas/arquivo"', js_response.text)
+
+        css_response = await self.client.get("/static/styles.css")
+        self.assertEqual(css_response.status_code, 200)
+
     async def test_consulta_json_retorna_resultados_e_downloads(self):
         response = await self.client.post(
             "/consultas",

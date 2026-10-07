@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Consulte CNPJs na JUCESC e baixe os documentos encontrados."
+    />
+    <title>Consulta JUCESC</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Consulta JUCESC, início">
+        <span class="brand-mark" aria-hidden="true">J</span>
+        <span>Consulta <strong>JUCESC</strong></span>
+      </a>
+      <span class="service-indicator"><span></span> Serviço de consulta</span>
+    </header>
+
+    <main class="page-shell">
+      <section class="intro">
+        <p class="eyebrow">PESQUISA DE DOCUMENTOS</p>
+        <h1>Consulte empresas na JUCESC</h1>
+        <p>
+          Informe os dados do solicitante e os CNPJs. Quando a consulta terminar,
+          você poderá baixar os documentos encontrados.
+        </p>
+      </section>
+
+      <form id="form-consulta" class="form-card">
+        <section class="form-section" aria-labelledby="solicitante-titulo">
+          <div class="section-heading">
+            <span class="step-number" aria-hidden="true">1</span>
+            <div>
+              <h2 id="solicitante-titulo">Dados do solicitante</h2>
+              <p>Essas informações são necessárias para fazer a solicitação.</p>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Nome completo</span>
+              <input
+                name="nome_solicitante"
+                type="text"
+                autocomplete="name"
+                placeholder="Ex.: Maria da Silva"
+                required
+              />
+            </label>
+            <label class="field">
+              <span>CPF</span>
+              <input
+                name="cpf_solicitante"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="000.000.000-00"
+                required
+              />
+            </label>
+            <label class="field field-wide">
+              <span>E-mail</span>
+              <input
+                name="email_solicitante"
+                type="email"
+                autocomplete="email"
+                placeholder="voce@exemplo.com"
+                required
+              />
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section" aria-labelledby="cnpjs-titulo">
+          <div class="section-heading">
+            <span class="step-number" aria-hidden="true">2</span>
+            <div>
+              <h2 id="cnpjs-titulo">Quais empresas deseja consultar?</h2>
+              <p>Escolha uma forma de informar os CNPJs.</p>
+            </div>
+          </div>
+
+          <fieldset class="input-choice">
+            <legend class="visually-hidden">Forma de informar os CNPJs</legend>
+            <label class="choice-option">
+              <input type="radio" name="modo-entrada" value="manual" checked />
+              <span>Digitar ou colar</span>
+            </label>
+            <label class="choice-option">
+              <input type="radio" name="modo-entrada" value="arquivo" />
+              <span>Enviar arquivo</span>
+            </label>
+          </fieldset>
+
+          <div id="painel-manual" class="input-panel">
+            <label class="field" for="lista-cnpjs">
+              <span>Lista de CNPJs</span>
+              <textarea
+                id="lista-cnpjs"
+                name="cnpjs"
+                rows="5"
+                placeholder="Digite ou cole um CNPJ por linha&#10;12.345.678/0001-95"
+                required
+              ></textarea>
+            </label>
+            <p class="field-hint">
+              Informe um CNPJ por linha. O limite segue a configuração do serviço.
+            </p>
+          </div>
+
+          <div id="painel-arquivo" class="input-panel" hidden>
+            <label class="file-picker" for="arquivo-cnpjs">
+              <span class="file-icon" aria-hidden="true">↑</span>
+              <span class="file-picker-copy">
+                <strong>Escolha um arquivo TXT ou CSV</strong>
+                <span>TXT com um CNPJ por linha ou CSV com uma coluna CNPJ (máx. 1 MB)</span>
+              </span>
+              <input
+                id="arquivo-cnpjs"
+                name="arquivo"
+                type="file"
+                accept=".txt,.csv,text/plain,text/csv"
+                disabled
+                required
+              />
+            </label>
+            <p id="nome-arquivo" class="field-hint">Nenhum arquivo selecionado.</p>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <p class="privacy-note">
+            Seus dados são enviados à JUCESC para realizar a consulta. A interface
+            não grava essas informações no navegador.
+          </p>
+          <button id="botao-consultar" class="primary-button" type="submit">
+            Consultar CNPJs <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
+
+      <p id="mensagem-status" class="status-message" role="status" aria-live="polite" hidden></p>
+
+      <section id="secao-resultados" class="results-card" aria-labelledby="resultados-titulo" hidden>
+        <div class="results-heading">
+          <div>
+            <p class="eyebrow">CONSULTA CONCLUÍDA</p>
+            <h2 id="resultados-titulo">Seus resultados</h2>
+          </div>
+          <a id="baixar-csv" class="secondary-button" href="#" hidden>
+            Baixar relatório CSV <span aria-hidden="true">↓</span>
+          </a>
+        </div>
+
+        <div class="summary-grid" aria-label="Resumo da consulta">
+          <div class="summary-item">
+            <span>Total consultado</span>
+            <strong id="total-consultado">0</strong>
+          </div>
+          <div class="summary-item summary-success">
+            <span>Documentos encontrados</span>
+            <strong id="total-sucesso">0</strong>
+          </div>
+          <div class="summary-item summary-error">
+            <span>Com erro</span>
+            <strong id="total-erros">0</strong>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">CNPJ</th>
+                <th scope="col">Resultado</th>
+                <th scope="col">Documento</th>
+              </tr>
+            </thead>
+            <tbody id="linhas-resultados"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="page-footer">
+        <span>Consulta JUCESC</span>
+        <span>Se precisar, peça ajuda ao responsável pelo sistema.</span>
+      </footer>
+    </main>
+  </body>
+</html>
