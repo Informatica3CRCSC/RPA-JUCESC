@@ -6,29 +6,9 @@ Serviço HTTP com uma interface Web para consultar CNPJs no site da Junta Comerc
 
 A aplicação recebe dados do solicitante e uma lista de CNPJs, executa a automação existente com Playwright e retorna o resultado de cada empresa. Os arquivos resultantes são armazenados localmente, organizados por identificador da consulta (`consulta_id`), e ficam disponíveis para download.
 
-## 2. Nova arquitetura
+## 2. Arquitetura
 
-```text
-Usuário / Navegador / n8n
-              │
-              │ HTTP
-              ▼
-       FastAPI + Interface Web
-              │
-              ▼
-        rpa_jucesc.py
-              │
-              ▼
-  consulta_fichas_jucesc.py
-              │
-       Playwright / Chrome
-              │
-              ▼
-           JUCESC
-              │
-              ▼
-          CSV + PDFs
-```
+[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/informatica3crcsc/rpa-jucesc?utm_source=readme&utm_medium=badge)
 
 ## 3. Como funciona
 
