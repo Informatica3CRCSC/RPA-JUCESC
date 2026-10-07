@@ -141,3 +141,5 @@ tests/
 ```
 
 O CLI permanece disponível por `rodar.bat`; ele e a API chamam o mesmo fluxo de automação.
+
+O site para consulta é esse: https://cop.jucesc.sc.gov.br/externo/servicos/?bnire
