@@ -94,6 +94,12 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         css_response = await self.client.get("/static/styles.css")
         self.assertEqual(css_response.status_code, 200)
 
+        for logo in ("logo-crcsc-branca.png", "logo-crcsc-colorida.png"):
+            image_response = await self.client.get(f"/static/img/{logo}")
+            self.assertEqual(image_response.status_code, 200)
+            self.assertEqual(image_response.headers["content-type"], "image/png")
+            self.assertTrue(image_response.content.startswith(b"\x89PNG\r\n\x1a\n"))
+
     async def test_consulta_json_retorna_resultados_e_downloads(self):
         response = await self.client.post(
             "/consultas",
